@@ -7,4 +7,4 @@ Before using this example, you need to have started the VPN connection to the Li
 python3 ship_side_client.py --user=username --pass=password
 
 ## shore_side_service_callback.py
-python3 shore_side_service_callback.py.py --user=username --pass=password
+python3 shore_side_service_callback.py --user=username --pass=password

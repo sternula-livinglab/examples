@@ -44,7 +44,7 @@ class WebSocketHandler():
         basic = self.user + ":" + self.password + ":" + self.shipmrn
         b64 = base64.b64encode(basic.encode()).decode()
         auth = "Basic %s" % b64
-        ws.send(auth)
+        ws.send(auth+"\n")
         self.thread = threading.Thread(target=self.GetInput, args=(ws,))
         self.thread.start()
 
@@ -56,7 +56,7 @@ class WebSocketHandler():
                 return
             msg = self.CreateMessage(i)
             print("Sending '" + msg + "'")
-            ws.send(msg)
+            ws.send(msg+"\n")
         pass
 
     def CreateMessage(self, data):

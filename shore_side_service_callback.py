@@ -19,15 +19,21 @@ def ReceiveMessage():
     print("Received from '" + mrn + "': " + str(request.data.decode("ascii")))
     return "", 200
 
+@api.route(relativeCallbackUrl + '/packet', methods=['POST'])
+def ReceivePacket():
+    mmsi = request.headers['srcMMSI']
+    print("Received from '" + mmsi + "': " + str(request.data.decode("ascii")))
+    return "", 200
+
 @api.route(relativeCallbackUrl + '/state', methods=['POST'])
 def StateChanged():
     return "", 200
 
-def SetupCallback(user, password, shoremrn):
+def SetupCallback(user, password, shoreid):
     print("Setting up callback")
     headers={
         'Authorization': 'Basic %s' % GenerateBasicAuth(user, password),
-        "MMSI": shoremrn,
+        "MMSI": shoreid,
         "username": "not_used",
         "password": "in_this_example",
         "relativeurl": relativeCallbackUrl,
@@ -58,17 +64,24 @@ def GenerateBasicAuth(user, password):
     basic = user + ":" + password
     return base64.b64encode(basic.encode()).decode()
 
+def NMEACheckSum(nmeaStr):
+    cs = 0
+    chars = list(nmeaStr)
+    for c in chars:
+        cs = cs ^ c 
+    return cs
+
 
 if __name__ == '__main__':
     argumentList = sys.argv[1:]
 
     options = "u:p:h:d:"
 
-    long_options = ["user=", "pass=", "shore-mrn=", "delay="]
+    long_options = ["user=", "pass=", "shore-id=", "delay="]
     
     user = ""
     password = ""
-    shoremrn = "shoremrn"
+    shoreid = "shoreid"
     delay = 5
 
     try:
@@ -82,11 +95,11 @@ if __name__ == '__main__':
             elif currentArgument in ("-p", "--pass"):
                 password = currentValue
 
-            elif currentArgument in ("-h", "--shore-mrn"):
-                shoremrn = currentValue
+            elif currentArgument in ("-h", "--shore-id"):
+                shoreid = currentValue
 
             elif currentArgument in ("-d", "--delay"):
-                dealy = currentValue
+                delay = currentValue
                 
     except getopt.error as err:
         print (str(err))
@@ -94,14 +107,20 @@ if __name__ == '__main__':
 
     print("User: " + user)
     print("Pass: " + password)
-    print("Shore MRN:  " + shoremrn)
+    print("Shore ID:  " + shoreid)
     print("Delay:  " + str(delay))
 
     print("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
-    print("Data can be sent to the ship using this CURL command:")
-    print('curl -X POST -H "Authorization: Basic ' + GenerateBasicAuth(user, password) + '\" -H "dstMRN:shipmrn" -H "srcMRN:' + shoremrn + '" -H "Content-Type:application/octet-stream" --data "Your payload" -v ' + baseUrl + '/mms/unicast')
+    print("MMS Data can be sent to the ship using this CURL command:")
+    print('curl -X POST -H "Authorization: Basic ' + GenerateBasicAuth(user, password) + '\" -H "dstMRN:shipid" -H "srcMRN:' + shoreid + '" -H "Content-Type:application/octet-stream" --data "Your payload" -v ' + baseUrl + '/mms/unicast')
     print("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
-    SetupCallback(user, password, shoremrn)
+
+    print("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+    print("VDES Data can be sent to the ship using this CURL command:")
+    print('curl -X POST -H "Authorization: Basic ' + GenerateBasicAuth(user, password) + '\" -H "dstMMSI:shipid" -H "srcMMSI:' + shoreid + '" -H "sequenceNumber:0" -H "packageId:0" -H "Content-Type:application/octet-stream" --data "Your payload" -v ' + baseUrl + '/packet/unicast')
+    print("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
+
+    SetupCallback(user, password, shoreid)
     SetupEnvironment(user, password, delay)
 
     api.run(host='0.0.0.0', port=callbackPort) 
